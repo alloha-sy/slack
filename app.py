@@ -55,7 +55,10 @@ def slack_events():
 
 @app.route("/slack/post", methods=["POST"])
 def slack_post():
-
+    # Slack URL 驗證
+    data = request.json
+    if data.get("type") == "url_verification":
+        return jsonify({"challenge": data.get("challenge")})
     try:
         headers = {
             "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
