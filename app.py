@@ -29,14 +29,15 @@ def slack_events():
 
         # 檢查事件類型是否為 app_mention
         if event.get("type") == "app_mention":
+            user_id = event.get("user")
             channel = event.get("channel")
-            text = "@igris Hello world!"
+            mention = f"<@{user_id}>"
+            text = f"{mention} Hello world!"
 
             try:
                 # 傳送回應到 Slack 頻道
-                result = client.chat_postMessage(
-                    channel=channel, text=text, parse="full", link_names=True
-                )
+
+                result = client.chat_postMessage(channel=channel, text=text)
                 logger.info("Message posted: %s", result)
                 return (
                     jsonify(
