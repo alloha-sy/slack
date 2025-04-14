@@ -26,12 +26,11 @@ def slack_events():
     # 處理訊息事件
     if data.get("type") == "event_callback":
         event = data.get("event", {})
-        # 忽略來自 bot 的訊息
-        if event.get("type") == "app_mention" and not event.get("bot_id"):
-            user_id = event.get("user")
+
+        # 檢查事件類型是否為 app_mention
+        if event.get("type") == "app_mention":
             channel = event.get("channel")
-            mention = f"<@{user_id}>"
-            text = f"{mention}: Hello world!{event.get('bot_id')}"
+            text = "@igris Hello world!"
 
             try:
                 # 傳送回應到 Slack 頻道
