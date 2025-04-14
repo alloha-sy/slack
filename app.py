@@ -1,15 +1,18 @@
+import logging
 import os
 
 import requests
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 load_dotenv()  # 讀取 .env 檔案
 
 app = Flask(__name__)
 
-# YOUR_API_URL = os.getenv("YOUR_API_URL")
-SLACK_BOT_TOKEN = os.getenv("SLACK_BOT_TOKEN")
+client = WebClient(token=os.getenv("SLACK_BOT_TOKEN"))
+logger = logging.getLogger(__name__)
 
 
 @app.route("/slack/events", methods=["POST"])
@@ -23,59 +26,37 @@ def slack_events():
     # 處理訊息事件
     if data.get("type") == "event_callback":
         event = data.get("event", {})
+        # 忽略來自 bot 的訊息
         if event.get("type") == "message" and not event.get("bot_id"):
             user = event.get("user")
-            text = event.get("text")
             channel = event.get("channel")
+            text = f"@{user}: Hello world!"
 
-            # # 發送到你的後端 API
-            # response = requests.post(YOUR_API_URL, json={"user": user, "text": text})
-            result_text = "成功了"
-
-            # 回傳到 Slack
-            # 回覆訊息到 Slack 頻道
             try:
-                headers = {
-                    "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
-                    "Content-Type": "application/json",
-                }
-                payload = {"channel": channel, "text": f"🔍 結果：{user}, {text}"}
-                slack_response = requests.post(
-                    "https://slack.com/api/chat.postMessage",
-                    headers=headers,
-                    json=payload,
-                    timeout=5,
+                # 傳送回應到 Slack 頻道
+                result = client.chat_postMessage(
+                    channel=channel, text=text, parse="full", link_names=True
                 )
-                slack_response.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                print(f"無法傳送訊息到 Slack：{e}")
-
-    return "", 200
-
-
-@app.route("/slack/post", methods=["POST"])
-def slack_post():
-    # Slack URL 驗證
-    data = request.json
-    if data.get("type") == "url_verification":
-        return jsonify({"challenge": data.get("challenge")})
-    try:
-        headers = {
-            "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
-            "Content-Type": "application/json",
-        }
-        payload = {"channel": "#ai專案", "text": f"🔍 結果：hi"}
-        slack_response = requests.post(
-            "https://slack.com/api/chat.postMessage",
-            headers=headers,
-            json=payload,
-            timeout=5,
+                logger.info("Message posted: %s", result)
+                return (
+                    jsonify(
+                        {
+                            "status": "success",
+                            "slack_response": result.data,
+                            "orginal_data": data,
+                        }
+                    ),
+                    200,
+                )
+            except SlackApiError as e:
+                logger.error("Error posting message: %s", e)
+                return jsonify({"status": "error", "error": e}), 500
+        return (
+            jsonify(
+                {"status": "ignored", "message": "No action taken for this request"}
+            ),
+            200,
         )
-        slack_response.raise_for_status()
-    except requests.exceptions.RequestException as e:
-        print(f"無法傳送訊息到 Slack：{e}")
-
-    return "", 200
 
 
 if __name__ == "__main__":
