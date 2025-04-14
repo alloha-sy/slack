@@ -27,7 +27,7 @@ def slack_events():
     if data.get("type") == "event_callback":
         event = data.get("event", {})
         # 忽略來自 bot 的訊息
-        if event.get("type") == "message" and not event.get("bot_id"):
+        if event.get("type") == "app_mention" and not event.get("bot_id"):
             user = event.get("user")
             channel = event.get("channel")
             text = f"@{user}: Hello world!"
