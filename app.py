@@ -53,5 +53,27 @@ def slack_events():
     return "", 200
 
 
+@app.route("/slack/post", methods=["POST"])
+def slack_post():
+
+    try:
+        headers = {
+            "Authorization": f"Bearer {SLACK_BOT_TOKEN}",
+            "Content-Type": "application/json",
+        }
+        payload = {"channel": "#ai專案", "text": f"🔍 結果：hi"}
+        slack_response = requests.post(
+            "https://slack.com/api/chat.postMessage",
+            headers=headers,
+            json=payload,
+            timeout=5,
+        )
+        slack_response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"無法傳送訊息到 Slack：{e}")
+
+    return "", 200
+
+
 if __name__ == "__main__":
     app.run(debug=True)
